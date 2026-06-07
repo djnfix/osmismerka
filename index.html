@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="cs">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Slovní hledací hádanka</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell" data-app>
+      <section class="game-card" aria-labelledby="level-title">
+        <aside class="word-panel">
+          <div class="title-block">
+            <div class="level-row">
+              <span class="level-kicker" data-level-count>Level 1 / 1</span>
+              <button class="change-level-button" type="button" data-change-level title="Načíst jiný level">
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path d="M16 3h5v5"/>
+                  <path d="M4 20 21 3"/>
+                  <path d="M21 16v5h-5"/>
+                  <path d="M15 15l6 6"/>
+                  <path d="M4 4l5 5"/>
+                </svg>
+                <span>Jiný</span>
+              </button>
+            </div>
+            <h1 id="level-title" data-level-title>Slovní hledací hádanka</h1>
+          </div>
+
+          <div class="progress-ring" aria-live="polite">
+            <span data-progress-count>0 / 0</span>
+            <small>nalezeno</small>
+          </div>
+
+          <ul class="word-list" data-word-list aria-label="Seznam slov"></ul>
+
+          <div class="secret-box" data-secret-box hidden>
+            <span>Tajenka</span>
+            <strong data-secret-text></strong>
+          </div>
+        </aside>
+
+        <section class="board-section">
+          <div class="board-toolbar">
+            <button class="icon-button" type="button" data-reset aria-label="Restartovat level" title="Restartovat level">
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M4 12a8 8 0 1 0 2.35-5.66"/>
+                <path d="M4 4v6h6"/>
+              </svg>
+            </button>
+            <div class="status-pill" data-status>Připraveno</div>
+          </div>
+
+          <div class="board-wrap" data-board-wrap>
+            <svg class="word-lines" data-word-lines aria-hidden="true"></svg>
+            <div class="puzzle-grid" data-grid role="grid" aria-label="Mřížka písmen"></div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <script src="levels.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

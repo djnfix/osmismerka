@@ -1,0 +1,474 @@
+(function () {
+  "use strict";
+
+  const levels = window.WORD_SEARCH_LEVELS || [];
+  const colors = [
+    "#ff4f8b",
+    "#52d273",
+    "#42bdf7",
+    "#ffe34f",
+    "#c782ff",
+    "#ff7a59",
+    "#4fd9ca",
+    "#a4e64f",
+    "#ff9fc3",
+    "#8ea0ff"
+  ];
+
+  const app = document.querySelector("[data-app]");
+  const gridEl = document.querySelector("[data-grid]");
+  const boardWrap = document.querySelector("[data-board-wrap]");
+  const linesEl = document.querySelector("[data-word-lines]");
+  const wordListEl = document.querySelector("[data-word-list]");
+  const titleEl = document.querySelector("[data-level-title]");
+  const levelCountEl = document.querySelector("[data-level-count]");
+  const progressEl = document.querySelector("[data-progress-count]");
+  const statusEl = document.querySelector("[data-status]");
+  const resetButton = document.querySelector("[data-reset]");
+  const changeLevelButton = document.querySelector("[data-change-level]");
+  const secretBox = document.querySelector("[data-secret-box]");
+  const secretText = document.querySelector("[data-secret-text]");
+
+  const state = {
+    levelIndex: 0,
+    level: null,
+    matrix: [],
+    activePointerId: null,
+    startCell: null,
+    currentCells: [],
+    found: new Map(),
+    preview: null,
+    cellSize: 0
+  };
+
+  if (!levels.length) {
+    app.innerHTML = "<p class=\"empty-state\">Nenalezen žádný level.</p>";
+    return;
+  }
+
+  init();
+
+  function init() {
+    resetButton.addEventListener("click", resetLevel);
+    changeLevelButton.addEventListener("click", changeLevel);
+    window.addEventListener("resize", scheduleLineRender);
+
+    if ("ResizeObserver" in window) {
+      new ResizeObserver(scheduleLineRender).observe(boardWrap);
+    }
+
+    loadLevel(chooseRandomLevel(readLastLevelIndex()));
+  }
+
+  function loadLevel(index) {
+    clearSelection();
+    state.levelIndex = index;
+    state.level = levels[index];
+    state.matrix = state.level.rows.map((row) => [...row]);
+    state.found.clear();
+    state.preview = null;
+    state.currentCells = [];
+    state.startCell = null;
+
+    validateLevel(state.level);
+    saveLastLevelIndex(index);
+
+    titleEl.textContent = state.level.title;
+    levelCountEl.textContent = `Level ${index + 1} / ${levels.length}`;
+    document.title = `${state.level.title} - Slovní hledací hádanka`;
+
+    gridEl.replaceChildren();
+    wordListEl.replaceChildren();
+    linesEl.replaceChildren();
+    secretBox.hidden = true;
+    secretBox.classList.remove("has-warning");
+
+    gridEl.style.setProperty("--grid-size", state.matrix.length);
+    renderGrid();
+    renderWords();
+    statusEl.textContent = "Připraveno";
+    updateProgress();
+    scheduleLineRender();
+  }
+
+  function changeLevel() {
+    loadLevel(chooseRandomLevel(state.levelIndex));
+  }
+
+  function chooseRandomLevel(excludedIndex) {
+    if (levels.length === 1) return 0;
+
+    let index = Math.floor(Math.random() * levels.length);
+
+    while (index === excludedIndex) {
+      index = Math.floor(Math.random() * levels.length);
+    }
+
+    return index;
+  }
+
+  function readLastLevelIndex() {
+    try {
+      const stored = window.localStorage.getItem("wordSearchLastLevel");
+      const index = Number(stored);
+      return Number.isInteger(index) ? index : -1;
+    } catch (error) {
+      return -1;
+    }
+  }
+
+  function saveLastLevelIndex(index) {
+    try {
+      window.localStorage.setItem("wordSearchLastLevel", String(index));
+    } catch (error) {
+      return;
+    }
+  }
+
+  function validateLevel(level) {
+    const size = level.rows.length;
+    const invalidRow = level.rows.find((row) => [...row].length !== size);
+
+    if (invalidRow) {
+      throw new Error("Level musí mít čtvercovou mřížku.");
+    }
+
+    level.words.forEach((wordEntry) => {
+      const word = getWordText(wordEntry);
+      const cells = getWordCells(wordEntry);
+
+      if (cells && getSelectedWord(cells) !== word) {
+        throw new Error(`Slovo ${word} neodpovídá své pozici v levelu.`);
+      }
+    });
+  }
+
+  function renderGrid() {
+    const fragment = document.createDocumentFragment();
+
+    state.matrix.forEach((row, rowIndex) => {
+      row.forEach((letter, colIndex) => {
+        const cell = document.createElement("button");
+        cell.className = "cell";
+        cell.type = "button";
+        cell.dataset.row = String(rowIndex);
+        cell.dataset.col = String(colIndex);
+        cell.setAttribute("role", "gridcell");
+        cell.setAttribute("aria-label", `${letter}, řádek ${rowIndex + 1}, sloupec ${colIndex + 1}`);
+        cell.innerHTML = `<span>${letter}</span>`;
+        cell.addEventListener("pointerdown", onPointerDown);
+        cell.addEventListener("pointerenter", onPointerEnter);
+        fragment.appendChild(cell);
+      });
+    });
+
+    gridEl.appendChild(fragment);
+  }
+
+  function renderWords() {
+    const fragment = document.createDocumentFragment();
+
+    state.level.words.forEach((wordEntry, index) => {
+      const item = document.createElement("li");
+      const word = getWordText(wordEntry);
+
+      item.className = "word-chip";
+      item.dataset.word = word;
+      item.style.setProperty("--chip-color", colors[index % colors.length]);
+      item.textContent = word;
+      fragment.appendChild(item);
+    });
+
+    wordListEl.appendChild(fragment);
+  }
+
+  function onPointerDown(event) {
+    const cell = event.currentTarget;
+
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (state.activePointerId !== null) clearSelection();
+
+    event.preventDefault();
+    if (gridEl.setPointerCapture) {
+      gridEl.setPointerCapture(event.pointerId);
+    }
+    state.activePointerId = event.pointerId;
+    state.startCell = readCell(cell);
+    state.currentCells = [state.startCell];
+    state.preview = {
+      cells: state.currentCells,
+      color: "#111111"
+    };
+
+    gridEl.classList.add("is-selecting");
+    document.addEventListener("pointermove", onPointerMove);
+    document.addEventListener("pointerup", onPointerUp);
+    document.addEventListener("pointercancel", onPointerCancel);
+    renderLines();
+  }
+
+  function onPointerEnter(event) {
+    if (state.activePointerId === null) return;
+    updateSelection(readCell(event.currentTarget));
+  }
+
+  function onPointerMove(event) {
+    if (event.pointerId !== state.activePointerId) return;
+
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const cell = target && target.closest("[data-row][data-col]");
+    if (!cell || !gridEl.contains(cell)) return;
+
+    updateSelection(readCell(cell));
+  }
+
+  function onPointerUp(event) {
+    if (event.pointerId !== state.activePointerId) return;
+    finishSelection();
+  }
+
+  function onPointerCancel(event) {
+    if (event.pointerId !== state.activePointerId) return;
+    clearSelection();
+  }
+
+  function updateSelection(endCell) {
+    if (!state.startCell) return;
+
+    const cells = getLineCells(state.startCell, endCell);
+    if (!cells.length) return;
+
+    state.currentCells = cells;
+    state.preview = {
+      cells,
+      color: "#111111"
+    };
+    renderLines();
+  }
+
+  function finishSelection() {
+    const selectedWord = getSelectedWord(state.currentCells);
+    const wordEntry = findMatchingWord(selectedWord, state.currentCells);
+
+    if (wordEntry) {
+      const word = getWordText(wordEntry);
+      const color = getWordColor(word);
+      state.found.set(word, {
+        cells: state.currentCells.slice(),
+        color
+      });
+      markWordFound(word, color);
+      updateProgress();
+    } else {
+      statusEl.textContent = selectedWord.length > 1 ? "Zkus jiný směr" : "Najdi celé slovo";
+    }
+
+    clearSelection();
+  }
+
+  function clearSelection() {
+    if (
+      state.activePointerId !== null &&
+      gridEl.hasPointerCapture &&
+      gridEl.hasPointerCapture(state.activePointerId)
+    ) {
+      gridEl.releasePointerCapture(state.activePointerId);
+    }
+
+    state.activePointerId = null;
+    state.startCell = null;
+    state.currentCells = [];
+    state.preview = null;
+    gridEl.classList.remove("is-selecting");
+    document.removeEventListener("pointermove", onPointerMove);
+    document.removeEventListener("pointerup", onPointerUp);
+    document.removeEventListener("pointercancel", onPointerCancel);
+    renderLines();
+  }
+
+  function findMatchingWord(selectedWord, selectedCells) {
+    if (!selectedWord) return null;
+    const reversed = reverseText(selectedWord);
+
+    return state.level.words.find((wordEntry) => {
+      const word = getWordText(wordEntry);
+      const answerCells = getWordCells(wordEntry);
+
+      if (state.found.has(word)) return false;
+      if (word !== selectedWord && word !== reversed) return false;
+      if (!answerCells) return true;
+
+      return cellsEqual(selectedCells, answerCells) || cellsEqual(selectedCells, answerCells.slice().reverse());
+    }) || null;
+  }
+
+  function markWordFound(word, color) {
+    const item = [...wordListEl.children].find((child) => child.dataset.word === word);
+    if (!item) return;
+
+    item.classList.add("is-found");
+    item.style.setProperty("--chip-color", color);
+    statusEl.textContent = word;
+  }
+
+  function getWordColor(word) {
+    const index = state.level.words.findIndex((wordEntry) => getWordText(wordEntry) === word);
+    return colors[Math.max(0, index) % colors.length];
+  }
+
+  function updateProgress() {
+    progressEl.textContent = `${state.found.size} / ${state.level.words.length}`;
+
+    if (state.found.size === state.level.words.length) {
+      revealSecret();
+      statusEl.textContent = "Hotovo";
+    }
+  }
+
+  function revealSecret() {
+    const selected = new Set();
+
+    state.found.forEach((entry) => {
+      entry.cells.forEach((cell) => selected.add(cellKey(cell)));
+    });
+
+    const leftover = [];
+    state.matrix.forEach((row, rowIndex) => {
+      row.forEach((letter, colIndex) => {
+        if (!selected.has(cellKey({ row: rowIndex, col: colIndex }))) {
+          leftover.push(letter);
+        }
+      });
+    });
+
+    const normalizedSecret = normalizeText(state.level.secret);
+    const normalizedLeftover = leftover.join("");
+    secretText.textContent = state.level.secret;
+    secretBox.hidden = false;
+    secretBox.classList.toggle("has-warning", normalizedSecret !== normalizedLeftover);
+  }
+
+  function resetLevel() {
+    state.found.clear();
+    state.preview = null;
+    state.currentCells = [];
+    state.startCell = null;
+    secretBox.hidden = true;
+    secretBox.classList.remove("has-warning");
+    wordListEl.querySelectorAll(".word-chip").forEach((item) => item.classList.remove("is-found"));
+    statusEl.textContent = "Připraveno";
+    updateProgress();
+    renderLines();
+  }
+
+  function getLineCells(start, end) {
+    const rowDiff = end.row - start.row;
+    const colDiff = end.col - start.col;
+    const rowStep = Math.sign(rowDiff);
+    const colStep = Math.sign(colDiff);
+    const rowDistance = Math.abs(rowDiff);
+    const colDistance = Math.abs(colDiff);
+
+    if (rowDistance === 0 && colDistance === 0) return [start];
+    if (rowDistance !== 0 && colDistance !== 0 && rowDistance !== colDistance) return [];
+
+    const length = Math.max(rowDistance, colDistance) + 1;
+    const cells = [];
+
+    for (let index = 0; index < length; index += 1) {
+      cells.push({
+        row: start.row + rowStep * index,
+        col: start.col + colStep * index
+      });
+    }
+
+    return cells;
+  }
+
+  function getSelectedWord(cells) {
+    return cells.map((cell) => state.matrix[cell.row][cell.col]).join("");
+  }
+
+  function renderLines() {
+    const rect = boardWrap.getBoundingClientRect();
+    linesEl.setAttribute("viewBox", `0 0 ${rect.width} ${rect.height}`);
+    linesEl.replaceChildren();
+
+    state.found.forEach((entry) => drawLine(entry.cells, entry.color, "found-line"));
+
+    if (state.preview && state.preview.cells.length > 1) {
+      drawLine(state.preview.cells, state.preview.color, "preview-line");
+    }
+  }
+
+  function drawLine(cells, color, className) {
+    const first = cells[0];
+    const last = cells[cells.length - 1];
+    const start = getCellCenter(first);
+    const end = getCellCenter(last);
+    const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+
+    line.setAttribute("x1", String(start.x));
+    line.setAttribute("y1", String(start.y));
+    line.setAttribute("x2", String(end.x));
+    line.setAttribute("y2", String(end.y));
+    line.setAttribute("stroke", color);
+    line.setAttribute("stroke-width", String(Math.max(22, state.cellSize * 0.64)));
+    line.setAttribute("stroke-linecap", "round");
+    line.setAttribute("class", className);
+    linesEl.appendChild(line);
+  }
+
+  function getCellCenter(cell) {
+    const cellEl = getCellEl(cell);
+    const cellRect = cellEl.getBoundingClientRect();
+    const boardRect = boardWrap.getBoundingClientRect();
+    state.cellSize = Math.min(cellRect.width, cellRect.height);
+
+    return {
+      x: cellRect.left - boardRect.left + cellRect.width / 2,
+      y: cellRect.top - boardRect.top + cellRect.height / 2
+    };
+  }
+
+  function scheduleLineRender() {
+    window.requestAnimationFrame(renderLines);
+  }
+
+  function getCellEl(cell) {
+    return gridEl.querySelector(`[data-row="${cell.row}"][data-col="${cell.col}"]`);
+  }
+
+  function readCell(cellEl) {
+    return {
+      row: Number(cellEl.dataset.row),
+      col: Number(cellEl.dataset.col)
+    };
+  }
+
+  function getWordText(wordEntry) {
+    return typeof wordEntry === "string" ? wordEntry : wordEntry.text;
+  }
+
+  function getWordCells(wordEntry) {
+    return typeof wordEntry === "string" ? null : wordEntry.cells;
+  }
+
+  function cellsEqual(first, second) {
+    if (!first || !second || first.length !== second.length) return false;
+
+    return first.every((cell, index) => cell.row === second[index].row && cell.col === second[index].col);
+  }
+
+  function cellKey(cell) {
+    return `${cell.row}:${cell.col}`;
+  }
+
+  function reverseText(text) {
+    return [...text].reverse().join("");
+  }
+
+  function normalizeText(text) {
+    return text.replace(/\s+/g, "").toUpperCase();
+  }
+}());
