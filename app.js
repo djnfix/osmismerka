@@ -3,16 +3,16 @@
 
   const levels = window.WORD_SEARCH_LEVELS || [];
   const colors = [
-    "#ff4f8b",
-    "#52d273",
-    "#42bdf7",
-    "#ffe34f",
-    "#c782ff",
-    "#ff7a59",
-    "#4fd9ca",
-    "#a4e64f",
-    "#ff9fc3",
-    "#8ea0ff"
+    "#f7a8c8",
+    "#7fd8de",
+    "#b8e7ef",
+    "#f3c4d8",
+    "#8bd3c7",
+    "#d8b4e2",
+    "#9dd9f3",
+    "#f6b6b8",
+    "#a6e0d5",
+    "#c7d7ff"
   ];
 
   const app = document.querySelector("[data-app]");
@@ -23,8 +23,6 @@
   const titleEl = document.querySelector("[data-level-title]");
   const levelCountEl = document.querySelector("[data-level-count]");
   const progressEl = document.querySelector("[data-progress-count]");
-  const statusEl = document.querySelector("[data-status]");
-  const resetButton = document.querySelector("[data-reset]");
   const changeLevelButton = document.querySelector("[data-change-level]");
   const secretBox = document.querySelector("[data-secret-box]");
   const quoteClueEl = document.querySelector("[data-quote-clue]");
@@ -51,7 +49,6 @@
   init();
 
   function init() {
-    resetButton.addEventListener("click", resetLevel);
     changeLevelButton.addEventListener("click", changeLevel);
     window.addEventListener("resize", scheduleLineRender);
 
@@ -92,7 +89,6 @@
     gridEl.style.setProperty("--grid-size", state.matrix.length);
     renderGrid();
     renderWords();
-    statusEl.textContent = "Připraveno";
     updateProgress();
     scheduleLineRender();
   }
@@ -265,8 +261,6 @@
       });
       markWordFound(word, color);
       updateProgress();
-    } else {
-      statusEl.textContent = selectedWord.length > 1 ? "Zkus jiný směr" : "Najdi celé slovo";
     }
 
     clearSelection();
@@ -314,7 +308,6 @@
 
     item.classList.add("is-found");
     item.style.setProperty("--chip-color", color);
-    statusEl.textContent = word;
   }
 
   function getWordColor(word) {
@@ -327,7 +320,6 @@
 
     if (state.found.size === state.level.words.length) {
       revealSecret();
-      statusEl.textContent = "Hotovo";
     }
   }
 
@@ -353,22 +345,6 @@
     secretText.hidden = false;
     secretBox.classList.add("is-solved");
     secretBox.classList.toggle("has-warning", normalizedSecret !== normalizedLeftover);
-  }
-
-  function resetLevel() {
-    state.found.clear();
-    state.preview = null;
-    state.currentCells = [];
-    state.startCell = null;
-    secretBox.classList.remove("has-warning");
-    secretBox.classList.remove("is-solved");
-    secretText.hidden = true;
-    secretText.textContent = "";
-    secretMaskEl.textContent = createSecretMask(state.level.secret);
-    wordListEl.querySelectorAll(".word-chip").forEach((item) => item.classList.remove("is-found"));
-    statusEl.textContent = "Připraveno";
-    updateProgress();
-    renderLines();
   }
 
   function getLineCells(start, end) {

@@ -24,7 +24,7 @@
                 <span>Jiný</span>
               </button>
             </div>
-            <h1 id="level-title" data-level-title>Slovní hledací hádanka</h1>
+            <h1 class="sr-only" id="level-title" data-level-title>Slovní hledací hádanka</h1>
           </div>
 
           <div class="progress-ring" aria-live="polite">
@@ -34,24 +34,6 @@
 
           <ul class="word-list" data-word-list aria-label="Seznam slov"></ul>
 
-        </aside>
-
-        <section class="board-section">
-          <div class="board-toolbar">
-            <button class="icon-button" type="button" data-reset aria-label="Restartovat level" title="Restartovat level">
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <path d="M4 12a8 8 0 1 0 2.35-5.66"/>
-                <path d="M4 4v6h6"/>
-              </svg>
-            </button>
-            <div class="status-pill" data-status>Připraveno</div>
-          </div>
-
-          <div class="board-wrap" data-board-wrap>
-            <svg class="word-lines" data-word-lines aria-hidden="true"></svg>
-            <div class="puzzle-grid" data-grid role="grid" aria-label="Mřížka písmen"></div>
-          </div>
-
           <div class="secret-box" data-secret-box>
             <span>Tajenka</span>
             <p>
@@ -59,6 +41,13 @@
               <span data-secret-mask></span>
             </p>
             <strong class="secret-solution" data-secret-text hidden></strong>
+          </div>
+        </aside>
+
+        <section class="board-section">
+          <div class="board-wrap" data-board-wrap>
+            <svg class="word-lines" data-word-lines aria-hidden="true"></svg>
+            <div class="puzzle-grid" data-grid role="grid" aria-label="Mřížka písmen"></div>
           </div>
         </section>
       </section>
