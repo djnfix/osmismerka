@@ -2,13 +2,17 @@
   "use strict";
 
   const GRID_SIZE = 10;
-  const PARTITIONS = {
-    6: [[3, 3], [6]],
-    7: [[3, 4], [4, 3], [7]],
-    8: [[4, 4], [3, 5], [5, 3], [8]],
-    9: [[4, 5], [5, 4], [3, 6], [6, 3], [9]],
-    10: [[5, 5], [4, 6], [6, 4], [3, 7], [7, 3], [10]]
-  };
+  const MAX_LEVELS = 100;
+  const DIRECTIONS = [
+    { code: "E", row: 0, col: 1 },
+    { code: "W", row: 0, col: -1 },
+    { code: "S", row: 1, col: 0 },
+    { code: "N", row: -1, col: 0 },
+    { code: "SE", row: 1, col: 1 },
+    { code: "SW", row: 1, col: -1 },
+    { code: "NE", row: -1, col: 1 },
+    { code: "NW", row: -1, col: -1 }
+  ];
 
   const WORD_BANK = uniqueWords([
     "ŠKOLA", "ŘEKA", "ŽÁBA", "KOČKA", "KŮŇ", "DŮM", "ČÁP", "DÉŠŤ", "MĚSTO", "HŘIŠTĚ",
@@ -39,177 +43,253 @@
     "OKNO", "DVEŘE", "KLÍČ", "SVĚTLO", "LAMPA", "KOBEREC", "KUCHYNĚ", "KOUPELNA",
     "LOŽNICE", "OBÝVÁK", "SKŘÍŇ", "POLICE", "ŠUPLÍK", "ČÁRA", "DÍRA", "KŮRA",
     "RŮŽE", "ŠÁLA", "PŮDA", "BŘEH", "MÍSA", "ŽÁR", "ŘÁD", "PŮL",
-    "DÝM", "LÉK", "ŠÍP", "NŮŽ", "RÁJ", "SŮL", "TÝM", "HRÁČ"
+    "DÝM", "LÉK", "ŠÍP", "NŮŽ", "RÁJ", "SŮL", "TÝM", "HRÁČ",
+    "HLAVA", "SRDCE", "RUKA", "NOHA", "OKO", "UCHO", "NOS", "TVÁŘ",
+    "ŽIVOT", "SVĚT", "NÁVRAT", "POMOC", "DŮVĚRA", "KLID", "SÍLA", "ODVAHA",
+    "LÁSKA", "NADĚJE", "VDĚK", "CÍL", "SMĚR", "KROK", "DEN", "CHVÍLE",
+    "ZAČÁTEK", "KONEC", "PROMĚNA", "ZÁZRAK", "TICHO", "HLAS", "ÚKOL", "PLÁN",
+    "ZVONEK", "KORUNA", "OHEŇ", "KÁMEN", "PERLA", "KŘÍDLO", "KAPKA", "KRUH",
+    "HŮLKA", "KOŠÍK", "MISKA", "TAŠKA", "LŽÍCE", "VIDLIČKA", "HRNEK", "SVÍČKA"
   ]);
 
-  const PHRASE_STARTS = [
-    "KAŽDÝ DEN", "MALÝ KROK", "DOBRÉ SRDCE", "TICHÁ MYSL", "LASKAVÉ SLOVO",
-    "ODVÁŽNÝ ČIN", "ČISTÁ RADOST", "NOVÁ NADĚJE", "JASNÝ CÍL", "VELKÝ ÚSMĚV",
-    "LEHKÝ DECH", "KLIDNÁ DUŠE", "TEPLÉ SVĚTLO", "VĚRNÁ SNAHA", "ŠŤASTNÁ CHVÍLE",
-    "MILÉ GESTO", "TRPĚLIVÉ SRDCE", "SVĚŽÍ NÁPAD", "PEVNÁ VÍRA", "HRAVÁ MYŠLENKA"
+  const QUOTE_STARTS = [
+    "KAŽDÝ DEN", "MALÝ KROK", "DOBRÉ SRDCE", "LASKAVÉ SLOVO", "ODVÁŽNÝ ČIN",
+    "ČISTÁ RADOST", "NOVÁ NADĚJE", "JASNÝ CÍL", "VELKÝ ÚSMĚV", "KLIDNÁ MYSL",
+    "TEPLÉ SVĚTLO", "PEVNÁ VÍRA", "TICHÁ SNAHA", "MILÉ GESTO", "SVĚŽÍ NÁPAD",
+    "POCTIVÁ PRÁCE", "RADOSTNÁ CHVÍLE", "LEHKÝ DECH", "DOBRÝ NÁPAD", "ŠŤASTNÁ MYSL"
   ];
 
-  const PHRASE_ENDS = [
-    "PŘINÁŠÍ RADOST", "VEDE K CÍLI", "MÁ VELKOU SÍLU", "OTEVÍRÁ CESTU", "SVÍTÍ DÁL"
+  const QUOTE_ENDS = [
+    "PŘINÁŠÍ TICHOU RADOST",
+    "VEDE K DOBRÉMU CÍLI",
+    "OTEVÍRÁ NOVOU CESTU",
+    "MÁ V SOBĚ VELKOU SÍLU",
+    "SVÍTÍ I V TICHU DÁL"
   ];
 
   const WORDS_BY_LENGTH = WORD_BANK.reduce((groups, word) => {
     const length = [...word].length;
+
     if (length <= GRID_SIZE) {
       groups[length] = groups[length] || [];
       groups[length].push(word);
     }
+
     return groups;
   }, {});
 
-  window.WORD_SEARCH_LEVELS = createSecrets().map((secret, index) => buildLevel(secret, index));
+  window.WORD_SEARCH_LEVELS = createQuotes().map((quote, index) => buildLevel(quote, index));
 
-  function createSecrets() {
-    const secrets = [];
+  function createQuotes() {
+    const quotes = [
+      {
+        clue: "RÁNO",
+        secret: "JE MOUDŘEJŠÍ VEČERA"
+      }
+    ];
 
-    PHRASE_STARTS.forEach((start) => {
-      PHRASE_ENDS.forEach((end) => secrets.push(`${start} ${end}`));
+    QUOTE_STARTS.forEach((clue) => {
+      QUOTE_ENDS.forEach((secret) => quotes.push({ clue, secret }));
     });
 
-    return secrets.slice(0, 100);
+    return quotes.slice(0, MAX_LEVELS);
   }
 
-  function buildLevel(secret, index) {
-    for (let attempt = 0; attempt < 250; attempt += 1) {
+  function buildLevel(quote, index) {
+    for (let attempt = 0; attempt < 700; attempt += 1) {
       const rng = createRandom((index + 1) * 2654435761 + attempt * 1013904223);
-      const built = tryBuildLevel(secret, index, rng);
+      const level = tryBuildLevel(quote, index, rng);
 
-      if (built) return built;
+      if (level) return level;
     }
 
     throw new Error(`Nepodařilo se vytvořit level ${index + 1}.`);
   }
 
-  function tryBuildLevel(secret, index, rng) {
-    const secretLetters = [...secret.replace(/\s+/g, "").toUpperCase()];
+  function tryBuildLevel(quote, index, rng) {
+    const secretLetters = getLetters(quote.secret);
+    const targetCoveredCount = GRID_SIZE * GRID_SIZE - secretLetters.length;
+    const grid = createEmptyGrid();
+    const covered = new Set();
     const usedWords = new Set();
-    const rows = [];
     const words = [];
-    let secretIndex = 0;
 
-    for (let row = 0; row < GRID_SIZE; row += 1) {
-      const rowsLeft = GRID_SIZE - row;
-      const remainingSecrets = secretLetters.length - secretIndex;
-      const minSecrets = Math.max(0, remainingSecrets - (rowsLeft - 1) * 4);
-      const maxSecrets = Math.min(4, remainingSecrets);
-      const secretCounts = shuffle(range(minSecrets, maxSecrets), rng);
-      const rowBuild = buildRow(row, secretCounts, secretLetters, secretIndex, usedWords, rng);
+    if (targetCoveredCount < 62 || targetCoveredCount > 88) return null;
 
-      if (!rowBuild) return null;
-
-      rows.push(rowBuild.rowText);
-      words.push(...rowBuild.words);
-      secretIndex += rowBuild.secretCount;
-    }
-
-    if (secretIndex !== secretLetters.length) return null;
-
-    return {
-      id: `level-${String(index + 1).padStart(3, "0")}`,
-      title: `Hádanka ${index + 1}`,
-      secret,
-      rows,
-      words
-    };
-  }
-
-  function buildRow(rowIndex, secretCounts, secretLetters, secretIndex, usedWords, rng) {
-    for (const secretCount of secretCounts) {
-      const wordCells = GRID_SIZE - secretCount;
-      const partitions = shuffle(PARTITIONS[wordCells] || [], rng);
-
-      for (const partition of partitions) {
-        const pickedWords = pickWordsForPartition(partition, usedWords, rng);
-
-        if (!pickedWords) continue;
-
-        const rowLetters = [];
-        const rowWords = [];
-        const tokenSlots = createTokenSlots(secretCount, pickedWords.length, rng);
-        const shuffledWords = shuffle(pickedWords.slice(), rng);
-        let nextSecret = secretIndex;
-        let nextWord = 0;
-
-        tokenSlots.forEach((slot) => {
-          if (slot === "secret") {
-            rowLetters.push(secretLetters[nextSecret]);
-            nextSecret += 1;
-            return;
-          }
-
-          const text = shuffledWords[nextWord];
-          const reversed = rng() < 0.38;
-          const displayLetters = reversed ? [...text].reverse() : [...text];
-          const startCol = rowLetters.length;
-
-          rowLetters.push(...displayLetters);
-          rowWords.push({
-            text,
-            cells: createAnswerCells(rowIndex, startCol, text.length, reversed)
-          });
-          nextWord += 1;
-        });
-
-        if (rowLetters.length !== GRID_SIZE) continue;
-
-        pickedWords.forEach((word) => usedWords.add(word));
-
-        return {
-          rowText: rowLetters.join(""),
-          secretCount,
-          words: rowWords
-        };
+    for (const direction of shuffle(DIRECTIONS, rng)) {
+      if (!placeOneWord(grid, covered, usedWords, words, direction, targetCoveredCount, rng)) {
+        return null;
       }
     }
 
-    return null;
-  }
+    let guard = 0;
 
-  function pickWordsForPartition(partition, usedWords, rng) {
-    const picked = [];
-    const pendingUsed = new Set(usedWords);
+    while (covered.size < targetCoveredCount && guard < 600) {
+      const direction = pickNextDirection(words, rng);
 
-    for (const length of partition) {
-      const candidates = (WORDS_BY_LENGTH[length] || []).filter((word) => !pendingUsed.has(word));
+      if (!placeOneWord(grid, covered, usedWords, words, direction, targetCoveredCount, rng)) {
+        guard += 1;
+        continue;
+      }
 
-      if (!candidates.length) return null;
-
-      const word = candidates[Math.floor(rng() * candidates.length)];
-      pendingUsed.add(word);
-      picked.push(word);
+      guard = 0;
     }
 
-    return picked;
+    if (covered.size !== targetCoveredCount) return null;
+
+    const secretCells = fillSecretCells(grid, secretLetters);
+
+    if (!secretCells) return null;
+
+    return {
+      id: `level-${String(index + 1).padStart(3, "0")}`,
+      title: `Osmisměrka ${index + 1}`,
+      clue: quote.clue,
+      secret: quote.secret,
+      solution: `${quote.clue} ${quote.secret}`,
+      rows: grid.map((row) => row.join("")),
+      words: words.sort((first, second) => first.text.localeCompare(second.text, "cs")),
+      secretCells
+    };
   }
 
-  function createTokenSlots(secretCount, wordCount, rng) {
-    const slotCount = secretCount + wordCount;
-    const secretPositions = new Set(shuffle(range(0, slotCount - 1), rng).slice(0, secretCount));
-    const slots = [];
+  function placeOneWord(grid, covered, usedWords, words, direction, targetCoveredCount, rng) {
+    const remaining = targetCoveredCount - covered.size;
+    const candidates = getCandidateWords(remaining, usedWords, rng);
 
-    for (let index = 0; index < slotCount; index += 1) {
-      slots.push(secretPositions.has(index) ? "secret" : "word");
+    for (const word of candidates) {
+      const options = findPlacementOptions(word, direction, grid, covered, remaining);
+
+      if (!options.length) continue;
+
+      const option = pickPlacementOption(options, rng);
+      placeWord(grid, covered, usedWords, words, word, option, direction);
+      return true;
     }
 
-    return slots;
+    return false;
   }
 
-  function createAnswerCells(row, startCol, length, reversed) {
-    const cells = [];
+  function getCandidateWords(remaining, usedWords, rng) {
+    const minLength = Math.min(3, remaining);
+    const lengths = shuffle(range(minLength, GRID_SIZE), rng);
+    const candidates = [];
 
-    for (let offset = 0; offset < length; offset += 1) {
-      cells.push({
-        row,
-        col: reversed ? startCol + length - 1 - offset : startCol + offset
+    lengths.forEach((length) => {
+      const words = WORDS_BY_LENGTH[length] || [];
+
+      shuffle(words, rng).forEach((word) => {
+        if (!usedWords.has(word)) candidates.push(word);
       });
+    });
+
+    return candidates;
+  }
+
+  function findPlacementOptions(word, direction, grid, covered, remaining) {
+    const letters = [...word];
+    const options = [];
+
+    for (let row = 0; row < GRID_SIZE; row += 1) {
+      for (let col = 0; col < GRID_SIZE; col += 1) {
+        const endRow = row + direction.row * (letters.length - 1);
+        const endCol = col + direction.col * (letters.length - 1);
+
+        if (!isInside(endRow, endCol)) continue;
+
+        const cells = [];
+        let newCells = 0;
+        let valid = true;
+
+        for (let index = 0; index < letters.length; index += 1) {
+          const cellRow = row + direction.row * index;
+          const cellCol = col + direction.col * index;
+          const existing = grid[cellRow][cellCol];
+          const key = cellKey(cellRow, cellCol);
+
+          if (existing && existing !== letters[index]) {
+            valid = false;
+            break;
+          }
+
+          if (!covered.has(key)) newCells += 1;
+
+          cells.push({
+            row: cellRow,
+            col: cellCol
+          });
+        }
+
+        if (valid && newCells > 0 && newCells <= remaining) {
+          options.push({
+            cells,
+            newCells,
+            overlap: letters.length - newCells
+          });
+        }
+      }
     }
 
-    return cells;
+    return options;
+  }
+
+  function pickPlacementOption(options, rng) {
+    const sorted = shuffle(options, rng).sort((first, second) => {
+      if (second.newCells !== first.newCells) return second.newCells - first.newCells;
+      return second.overlap - first.overlap;
+    });
+    const poolSize = Math.min(8, sorted.length);
+
+    return sorted[Math.floor(rng() * poolSize)];
+  }
+
+  function placeWord(grid, covered, usedWords, words, word, option, direction) {
+    const letters = [...word];
+
+    option.cells.forEach((cell, index) => {
+      grid[cell.row][cell.col] = letters[index];
+      covered.add(cellKey(cell.row, cell.col));
+    });
+
+    usedWords.add(word);
+    words.push({
+      text: word,
+      cells: option.cells,
+      direction: direction.code
+    });
+  }
+
+  function pickNextDirection(words, rng) {
+    const usage = new Map(DIRECTIONS.map((direction) => [direction.code, 0]));
+
+    words.forEach((word) => usage.set(word.direction, usage.get(word.direction) + 1));
+
+    const minUsage = Math.min(...usage.values());
+    const leastUsed = DIRECTIONS.filter((direction) => usage.get(direction.code) === minUsage);
+
+    return leastUsed[Math.floor(rng() * leastUsed.length)];
+  }
+
+  function fillSecretCells(grid, secretLetters) {
+    const secretCells = [];
+    let secretIndex = 0;
+
+    for (let row = 0; row < GRID_SIZE; row += 1) {
+      for (let col = 0; col < GRID_SIZE; col += 1) {
+        if (grid[row][col]) continue;
+        if (secretIndex >= secretLetters.length) return null;
+
+        grid[row][col] = secretLetters[secretIndex];
+        secretCells.push({ row, col });
+        secretIndex += 1;
+      }
+    }
+
+    return secretIndex === secretLetters.length ? secretCells : null;
+  }
+
+  function createEmptyGrid() {
+    return Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => null));
   }
 
   function createRandom(seed) {
@@ -222,6 +302,14 @@
       next ^= next + Math.imul(next ^ next >>> 7, next | 61);
       return ((next ^ next >>> 14) >>> 0) / 4294967296;
     };
+  }
+
+  function getLetters(text) {
+    return [...text.replace(/\s+/g, "").toUpperCase()];
+  }
+
+  function isInside(row, col) {
+    return row >= 0 && col >= 0 && row < GRID_SIZE && col < GRID_SIZE;
   }
 
   function shuffle(items, rng) {
@@ -245,6 +333,10 @@
     }
 
     return values;
+  }
+
+  function cellKey(row, col) {
+    return `${row}:${col}`;
   }
 
   function uniqueWords(words) {

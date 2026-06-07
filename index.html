@@ -34,10 +34,6 @@
 
           <ul class="word-list" data-word-list aria-label="Seznam slov"></ul>
 
-          <div class="secret-box" data-secret-box hidden>
-            <span>Tajenka</span>
-            <strong data-secret-text></strong>
-          </div>
         </aside>
 
         <section class="board-section">
@@ -54,6 +50,15 @@
           <div class="board-wrap" data-board-wrap>
             <svg class="word-lines" data-word-lines aria-hidden="true"></svg>
             <div class="puzzle-grid" data-grid role="grid" aria-label="Mřížka písmen"></div>
+          </div>
+
+          <div class="secret-box" data-secret-box>
+            <span>Tajenka</span>
+            <p>
+              <strong data-quote-clue></strong>
+              <span data-secret-mask></span>
+            </p>
+            <strong class="secret-solution" data-secret-text hidden></strong>
           </div>
         </section>
       </section>

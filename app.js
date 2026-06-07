@@ -27,6 +27,8 @@
   const resetButton = document.querySelector("[data-reset]");
   const changeLevelButton = document.querySelector("[data-change-level]");
   const secretBox = document.querySelector("[data-secret-box]");
+  const quoteClueEl = document.querySelector("[data-quote-clue]");
+  const secretMaskEl = document.querySelector("[data-secret-mask]");
   const secretText = document.querySelector("[data-secret-text]");
 
   const state = {
@@ -80,8 +82,12 @@
     gridEl.replaceChildren();
     wordListEl.replaceChildren();
     linesEl.replaceChildren();
-    secretBox.hidden = true;
     secretBox.classList.remove("has-warning");
+    secretBox.classList.remove("is-solved");
+    secretText.hidden = true;
+    secretText.textContent = "";
+    quoteClueEl.textContent = `${state.level.clue} `;
+    secretMaskEl.textContent = createSecretMask(state.level.secret);
 
     gridEl.style.setProperty("--grid-size", state.matrix.length);
     renderGrid();
@@ -343,8 +349,9 @@
 
     const normalizedSecret = normalizeText(state.level.secret);
     const normalizedLeftover = leftover.join("");
-    secretText.textContent = state.level.secret;
-    secretBox.hidden = false;
+    secretText.textContent = state.level.solution || `${state.level.clue} ${state.level.secret}`;
+    secretText.hidden = false;
+    secretBox.classList.add("is-solved");
     secretBox.classList.toggle("has-warning", normalizedSecret !== normalizedLeftover);
   }
 
@@ -353,8 +360,11 @@
     state.preview = null;
     state.currentCells = [];
     state.startCell = null;
-    secretBox.hidden = true;
     secretBox.classList.remove("has-warning");
+    secretBox.classList.remove("is-solved");
+    secretText.hidden = true;
+    secretText.textContent = "";
+    secretMaskEl.textContent = createSecretMask(state.level.secret);
     wordListEl.querySelectorAll(".word-chip").forEach((item) => item.classList.remove("is-found"));
     statusEl.textContent = "Připraveno";
     updateProgress();
@@ -470,5 +480,12 @@
 
   function normalizeText(text) {
     return text.replace(/\s+/g, "").toUpperCase();
+  }
+
+  function createSecretMask(secret) {
+    return secret
+      .split(" ")
+      .map((word) => "•".repeat([...word].length))
+      .join(" ");
   }
 }());
