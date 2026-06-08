@@ -42,6 +42,7 @@
     preview: null,
     cellSize: 0
   };
+  let wordFitFrame = null;
 
   if (!levelCount) {
     app.innerHTML = "<p class=\"empty-state\">Nenalezen žádný level.</p>";
@@ -52,10 +53,14 @@
 
   function init() {
     changeLevelButton.addEventListener("click", changeLevel);
-    window.addEventListener("resize", scheduleLineRender);
+    window.addEventListener("resize", () => {
+      scheduleLineRender();
+      scheduleWordFit();
+    });
 
     if ("ResizeObserver" in window) {
       new ResizeObserver(scheduleLineRender).observe(boardWrap);
+      new ResizeObserver(scheduleWordFit).observe(wordListEl);
     }
 
     loadLevel(chooseRandomLevel(readLastLevelIndex()));
@@ -93,6 +98,7 @@
     renderWords();
     updateProgress();
     scheduleLineRender();
+    scheduleWordFit();
   }
 
   function changeLevel() {
@@ -192,6 +198,29 @@
     });
 
     wordListEl.appendChild(fragment);
+  }
+
+  function scheduleWordFit() {
+    if (wordFitFrame !== null) {
+      window.cancelAnimationFrame(wordFitFrame);
+    }
+
+    wordFitFrame = window.requestAnimationFrame(() => {
+      wordFitFrame = null;
+      fitWordList();
+    });
+  }
+
+  function fitWordList() {
+    let scale = 1;
+    const minimumScale = 0.4;
+
+    wordListEl.style.setProperty("--word-scale", String(scale));
+
+    while (wordListEl.scrollHeight > wordListEl.clientHeight + 1 && scale > minimumScale) {
+      scale = Math.max(minimumScale, scale - 0.03);
+      wordListEl.style.setProperty("--word-scale", scale.toFixed(2));
+    }
   }
 
   function onPointerDown(event) {
@@ -409,7 +438,7 @@
     line.setAttribute("x2", String(end.x));
     line.setAttribute("y2", String(end.y));
     line.setAttribute("stroke", color);
-    line.setAttribute("stroke-width", String(Math.max(12, state.cellSize * 0.58)));
+    line.setAttribute("stroke-width", String(Math.max(18, state.cellSize * 0.78)));
     line.setAttribute("stroke-linecap", "round");
     line.setAttribute("class", className);
     linesEl.appendChild(line);
