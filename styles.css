@@ -289,8 +289,7 @@ h1 {
 .board-section {
   min-width: 0;
   min-height: 0;
-  width: min(100%, 626px, calc(var(--visual-height) - 16px));
-  aspect-ratio: 1;
+  width: 100%;
   align-self: center;
   justify-self: center;
   padding: 8px;
@@ -304,7 +303,7 @@ h1 {
 
 .board-wrap {
   position: relative;
-  width: 100%;
+  width: min(100%, 594px, calc(var(--visual-height) - 32px));
   max-height: 100%;
   aspect-ratio: 1;
   align-self: center;

@@ -448,8 +448,8 @@
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const length = Math.hypot(dx, dy) || 1;
-    const extension = Math.max(7, state.cellSize * 0.18);
-    const strokeWidth = Math.max(26, state.cellSize * 1.12);
+    const extension = Math.max(4, state.cellSize * 0.08);
+    const strokeWidth = Math.max(13, state.cellSize * 0.56);
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 
     line.setAttribute("x1", String(start.x - dx / length * extension));
