@@ -1,8 +1,9 @@
 (function () {
   "use strict";
 
-  const GRID_SIZE = 10;
+  const GRID_SIZE = 16;
   const MAX_LEVELS = 100;
+  const MIN_WORD_LENGTH = 3;
   const DIRECTIONS = [
     { code: "E", row: 0, col: 1 },
     { code: "W", row: 0, col: -1 },
@@ -49,22 +50,137 @@
     "LÁSKA", "NADĚJE", "VDĚK", "CÍL", "SMĚR", "KROK", "DEN", "CHVÍLE",
     "ZAČÁTEK", "KONEC", "PROMĚNA", "ZÁZRAK", "TICHO", "HLAS", "ÚKOL", "PLÁN",
     "ZVONEK", "KORUNA", "OHEŇ", "KÁMEN", "PERLA", "KŘÍDLO", "KAPKA", "KRUH",
-    "HŮLKA", "KOŠÍK", "MISKA", "TAŠKA", "LŽÍCE", "VIDLIČKA", "HRNEK", "SVÍČKA"
+    "HŮLKA", "KOŠÍK", "MISKA", "TAŠKA", "LŽÍCE", "VIDLIČKA", "HRNEK", "SVÍČKA",
+    "ANTAGONISTA", "DELTAPLÁN", "NEDOKOŠENEC", "NEDONOŠENEC", "ZMOCNĚNÍ", "SODOMIE",
+    "PARLAMENTÁŘ", "AKVIZICE", "KONTRABAND", "DYSKALKULIE", "FENOMENOLOGIE", "INFRASTRUKTURA",
+    "METAMORFÓZA", "KONSTELACE", "REKONSTRUKCE", "KONSTRUKTÉR", "REDAKTORKA", "MORFOLOGIE",
+    "PARADOXNÍ", "SYNCHRONIZACE", "DEZINFORMACE", "KONSENZUS", "KOMPROMIS", "ARCHITEKTURA",
+    "ADMINISTRATIVA", "LEGISLATIVA", "DEMOKRACIE", "DIPLOMACIE", "KOMUNIKACE", "ORGANIZACE",
+    "KONFERENCE", "PROJEKTANT", "KANDIDATURA", "PERSPEKTIVA", "INICIATIVA", "STRATEGIE",
+    "ARGUMENTACE", "INTERPRETACE", "KONCENTRACE", "ORIENTACE", "TRANSFORMACE", "KONZERVATOŘ",
+    "LABORATOŘ", "BIOLOGIE", "PSYCHOLOGIE", "SOCIOLOGIE", "FILOZOFIE", "ETIMOLOGIE",
+    "KALIGRAFIE", "TYPOGRAFIE", "KARTOGRAFIE", "HYDROLOGIE", "GEOLOGIE", "ASTRONOMIE",
+    "KOSMONAUTIKA", "MATEMATIKA", "STATISTIKA", "MECHANIKA", "ELEKTRONIKA", "ROBOTIKA",
+    "ALGORITMUS", "PROGRAMÁTOR", "PROMĚNNÁ", "KOMPILACE", "PARAMETR", "PROCEDURA",
+    "KATEGORIE", "HIERARCHIE", "SYMETRIE", "GEOMETRIE", "FRAKCE", "FUNKCE",
+    "ROVNICE", "KOEFICIENT", "KONSTANTA", "PARABOLA", "HYPERBOLA", "PERSPEKTIVA",
+    "RENESANCE", "BAROKO", "ROMANTISMUS", "REALISMUS", "SYMBOLISMUS", "IMPRESE",
+    "KOMPOZICE", "ILUSTRACE", "KALENDÁŘ", "KRONIKÁŘ", "ARCHIVÁŘ", "KNIHOVNÍK",
+    "PARLAMENT", "MINISTERSTVO", "ZASTUPITEL", "VELVYSLANEC", "REFERENDUM", "REZOLUCE",
+    "KOMPETENCE", "OPRÁVNĚNÍ", "POVĚŘENÍ", "USNESENÍ", "PROHLÁŠENÍ", "VYJEDNÁVÁNÍ",
+    "HOSPODÁŘSTVÍ", "EKONOMIKA", "INVESTICE", "DIVIDENDA", "INFLACE", "KALKULACE",
+    "GARANCE", "RIZIKO", "ANALÝZA", "DIAGNÓZA", "TERAPIE", "CHIRURGIE",
+    "ANESTEZIE", "ANATOMIE", "FYZIOLOGIE", "NEUROLOGIE", "PEDIATRIE", "KARDIOLOGIE",
+    "MIKROSKOP", "TELESKOP", "SPEKTROMETR", "CHROMOZOM", "MOLEKULA", "ENZYM",
+    "BAKTERIE", "VIRUS", "EVOLUCE", "ADAPTACE", "BIOTOP", "EKOSYSTÉM",
+    "ATMOSFÉRA", "BIOSFÉRA", "HYDROSFÉRA", "KONTINENT", "SOUOSTROVÍ", "POLOOSTROV",
+    "ROVNOBĚŽKA", "POLEDNÍK", "MERIDIÁN", "MAGNETISMUS", "GRAVITACE", "TERMODYNAMIKA",
+    "FOTOSYNTÉZA", "KRYSTALIZACE", "DESTILACE", "FERMENTACE", "KATALYZÁTOR", "ELEKTROLÝZA",
+    "KONCENTRÁT", "SUBSTANCE", "REAKTANT", "SLOUČENINA", "ROZPUSTNOST", "KYSELINA",
+    "ALKALITA", "IZOLACE", "REAKTOR", "TURBÍNA", "GENERÁTOR", "AKUMULÁTOR"
   ]);
 
-  const QUOTE_STARTS = [
-    "KAŽDÝ DEN", "MALÝ KROK", "DOBRÉ SRDCE", "LASKAVÉ SLOVO", "ODVÁŽNÝ ČIN",
-    "ČISTÁ RADOST", "NOVÁ NADĚJE", "JASNÝ CÍL", "VELKÝ ÚSMĚV", "KLIDNÁ MYSL",
-    "TEPLÉ SVĚTLO", "PEVNÁ VÍRA", "TICHÁ SNAHA", "MILÉ GESTO", "SVĚŽÍ NÁPAD",
-    "POCTIVÁ PRÁCE", "RADOSTNÁ CHVÍLE", "LEHKÝ DECH", "DOBRÝ NÁPAD", "ŠŤASTNÁ MYSL"
-  ];
-
-  const QUOTE_ENDS = [
-    "PŘINÁŠÍ TICHOU RADOST",
-    "VEDE K DOBRÉMU CÍLI",
-    "OTEVÍRÁ NOVOU CESTU",
-    "MÁ V SOBĚ VELKOU SÍLU",
-    "SVÍTÍ I V TICHU DÁL"
+  const QUOTES = [
+    { clue: "RÁNO", secret: "JE MOUDŘEJŠÍ VEČERA" },
+    { clue: "ÚSMĚV", secret: "OTEVÍRÁ KAŽDÉ DVEŘE" },
+    { clue: "KDO HLEDÁ", secret: "TEN NAKONEC NAJDE" },
+    { clue: "TRPĚLIVOST", secret: "RŮŽE ČASEM PŘINÁŠÍ" },
+    { clue: "LASKAVOST", secret: "SE VŽDYCKY VRACÍ" },
+    { clue: "MALÝ KROK", secret: "VEDE K VELKÉ CESTĚ" },
+    { clue: "KAŽDÝ DEN", secret: "JE VŽDY NOVÁ ŠANCE" },
+    { clue: "DOBRÉ SLOVO", secret: "HŘEJE U DOBRÉHO SRDCE" },
+    { clue: "ODVAHA", secret: "OTEVÍRÁ NOVÉ DVEŘE" },
+    { clue: "NADĚJE", secret: "NIKDY ÚPLNĚ NEHASNE" },
+    { clue: "RADOST", secret: "ROSTE KAŽDÝM SDÍLENÍM" },
+    { clue: "KLIDNÁ MYSL", secret: "VIDÍ CESTU JASNĚ" },
+    { clue: "KDO SE SMĚJE", secret: "MÁ SLUNCE HLUBOKO V SOBĚ" },
+    { clue: "DOBRÝ SKUTEK", secret: "SVÍTÍ DLOUHO DÁL" },
+    { clue: "POCTIVÁ PRÁCE", secret: "PŘINÁŠÍ DOBRÉ OVOCE" },
+    { clue: "ČAS", secret: "UKÁŽE SPRÁVNÝ SMĚR" },
+    { clue: "SRDCE", secret: "VÍ ČASTO VÍC NEŽ OČI" },
+    { clue: "KDO POMÁHÁ", secret: "NIKDY NEZŮSTANE SÁM" },
+    { clue: "DOMOV", secret: "JE TAM KDE JE LÁSKA" },
+    { clue: "PRAVDA", secret: "MÁ TICHOU VELKOU SÍLU" },
+    { clue: "SPOLEČNÁ CESTA", secret: "BÝVÁ HNED O KUS LEHČÍ" },
+    { clue: "DOBRÁ RADA", secret: "MÁ OPRAVDU CENU ZLATA" },
+    { clue: "TICHÝ HLÁSEK", secret: "MŮŽE MÍT VELKOU PRAVDU" },
+    { clue: "MALÁ POMOC", secret: "DOKÁŽE VELKÉ VĚCI" },
+    { clue: "KDO SE NEVZDÁ", secret: "DOJDE NAKONEC DÁL" },
+    { clue: "ČISTÉ SVĚDOMÍ", secret: "JE MĚKKÝ POLŠTÁŘ" },
+    { clue: "DOBRÁ MYŠLENKA", secret: "ROSTE V DOBRÉM ČINU" },
+    { clue: "LÁSKA", secret: "DÁVÁ VĚCEM SMYSL" },
+    { clue: "VDĚČNOST", secret: "MĚNÍ DEN K LEPŠÍMU" },
+    { clue: "KDO NASLOUCHÁ", secret: "LÉPE DRUHÝM ROZUMÍ" },
+    { clue: "JEDEN ÚSMĚV", secret: "ZLEPŠÍ CELÝ DLOUHÝ DEN" },
+    { clue: "POMALU", secret: "SE DOJDE OPRAVDU NEJDÁL" },
+    { clue: "KDO ZAČNE", secret: "JE UŽ NA DOBRÉ CESTĚ" },
+    { clue: "DOBRÁ VŮLE", secret: "SI NAJDE DOBRÝ ZPŮSOB" },
+    { clue: "JASNÝ CÍL", secret: "USNADNÍ KAŽDÝ KROK" },
+    { clue: "KDO SE UČÍ", secret: "ROSTE O KOUSEK KAŽDÝ DEN" },
+    { clue: "MÍR V SRDCI", secret: "JE VELKÉ BOHATSTVÍ" },
+    { clue: "DOBRÝ PŘÍTEL", secret: "JE POKLAD NA CESTĚ" },
+    { clue: "SÍLA", secret: "ROSTE Z VNITŘNÍHO KLIDU" },
+    { clue: "KDO DĚKUJE", secret: "VIDÍ VÍC RADOSTI" },
+    { clue: "PO MALÝCH KROCÍCH", secret: "VZNIKAJÍ ZÁZRAKY" },
+    { clue: "DOBRÉ SRDCE", secret: "NIKDY NEZTRÁCÍ SMĚR" },
+    { clue: "KLID", secret: "JE ČASTO PŮL ÚSPĚCHU" },
+    { clue: "KDO VĚŘÍ", secret: "NAJDE V SOBĚ ODVAHU" },
+    { clue: "TICHÁ RADOST", secret: "DLOUHO V SRDCI HŘEJE" },
+    { clue: "MALÁ JISKRA", secret: "ROZSVÍTÍ I VELKOU TMU" },
+    { clue: "VLÍDNÉ SLOVO", secret: "UMÍ POHLADIT SRDCE" },
+    { clue: "KDO SE PTÁ", secret: "TEN SE HODNĚ DOZVÍ" },
+    { clue: "NADĚJE", secret: "JE SVĚTLO NA CESTĚ" },
+    { clue: "ŠTĚSTÍ", secret: "PŘEJE PŘIPRAVENÝM" },
+    { clue: "KDO SDÍLÍ", secret: "MÁ DVAKRÁT RADOST" },
+    { clue: "DOBRÝ DEN", secret: "ZAČÍNÁ MILÝM ÚSMĚVEM" },
+    { clue: "ODVÁŽNÉ SRDCE", secret: "JDE I PROTI VĚTRU" },
+    { clue: "KDO ČEKÁ", secret: "TEN SE NAKONEC DOČKÁ" },
+    { clue: "PŘÁNÍ", secret: "ROSTE KDYŽ MU VĚŘÍŠ" },
+    { clue: "KDO SE SNAŽÍ", secret: "MÁ VYHRÁNO NAPŮL" },
+    { clue: "DOBRÁ NÁLADA", secret: "JE KRÁSNĚ NAKAŽLIVÁ" },
+    { clue: "JEDNA SVÍČKA", secret: "ROZSVÍTÍ CELÝ POKOJ" },
+    { clue: "KDO MÁ CÍL", secret: "SI NAJDE SPRÁVNOU CESTU" },
+    { clue: "TICHÁ CHVÍLE", secret: "VRACÍ ZTRACENOU SÍLU" },
+    { clue: "PŘÁTELSTVÍ", secret: "ROSTE Z VELKÉ DŮVĚRY" },
+    { clue: "DOBRÝ ZAČÁTEK", secret: "JE ČASTO PŮL PRÁCE" },
+    { clue: "KDO DÁVÁ", secret: "TEN TAKÉ DOSTÁVÁ" },
+    { clue: "LASKAVÉ SRDCE", secret: "VIDÍ KRÁSU KOLEM SEBE" },
+    { clue: "VĚŘ SI", secret: "A UDĚLÁŠ PRVNÍ KROK" },
+    { clue: "KAŽDÝ PÁD", secret: "UČÍ ČLOVĚKA ZNOVU VSTÁT" },
+    { clue: "DOBRÉ VĚCI", secret: "CHTĚJÍ SVŮJ SPRÁVNÝ ČAS" },
+    { clue: "KDO MÁ RADOST", secret: "ROZDÁVÁ KOLEM SVĚTLO" },
+    { clue: "NENÍ KAM SPĚCHAT", secret: "KDYŽ JDEŠ SPRÁVNĚ" },
+    { clue: "ÚCTA", secret: "OTEVÍRÁ LIDSKÉ SRDCE" },
+    { clue: "KDO UMÍ ČEKAT", secret: "DOČKÁ SE KRÁSNÝCH KVĚTŮ" },
+    { clue: "SPOKOJENOST", secret: "BYDLÍ V MALIČKOSTECH" },
+    { clue: "DOBRÁ CESTA", secret: "ZAČÍNÁ PRVNÍM KROKEM" },
+    { clue: "KDO SE USMĚJE", secret: "ROZDÁ KOUSEK SLUNCE" },
+    { clue: "KLIDNÉ SRDCE", secret: "SILNĚ A KLIDNĚ BIJE" },
+    { clue: "MALÁ RADOST", secret: "UMÍ UDĚLAT VELKÉ DIVY" },
+    { clue: "KDO CHCE RŮST", secret: "MUSÍ SE STÁLE UČIT" },
+    { clue: "DOBRÝ PŘÍKLAD", secret: "MLUVÍ NEJHLASITĚJI" },
+    { clue: "NADĚJE", secret: "DÁVÁ SRDCI KŘÍDLA" },
+    { clue: "KDO MÁ KLID", secret: "LÉPE KOLEM SEBE VIDÍ" },
+    { clue: "LASKAVÝ ČIN", secret: "ZŮSTANE V PAMĚTI" },
+    { clue: "DOBRÉ SNY", secret: "ZAČÍNAJÍ V SRDCI" },
+    { clue: "KDO SE DÍVÁ", secret: "NAJDE KRÁSU VŠUDE" },
+    { clue: "UPŘÍMNOST", secret: "JE NEJLEPŠÍ CESTA" },
+    { clue: "MALÉ DOBRO", secret: "DĚLÁ VELKÝ KRÁSNÝ DEN" },
+    { clue: "KDO MÁ NADĚJI", secret: "MÁ V SOBĚ I VELKOU SÍLU" },
+    { clue: "SVĚTLO", secret: "JE SILNĚJŠÍ NEŽ TMA" },
+    { clue: "DOBRÉ ZPRÁVY", secret: "POTĚŠÍ KAŽDÉ SRDCE" },
+    { clue: "KDO DĚLÁ DOBRO", secret: "NIKDY NEJDE ZBYTEČNĚ" },
+    { clue: "RADOST", secret: "JE KLIDNÁ CESTA K SOBĚ" },
+    { clue: "KAŽDÉ RÁNO", secret: "PŘINÁŠÍ NOVÝ ZAČÁTEK" },
+    { clue: "KDO MÁ ODVAHU", secret: "OBJEVÍ NOVÝ SVĚT" },
+    { clue: "DOBRÉ TICHO", secret: "LÉČÍ UNAVENOU MYSL" },
+    { clue: "LÁSKA", secret: "JE NEJKRATŠÍ CESTA" },
+    { clue: "KDO DRŽÍ SLOVO", secret: "STAVÍ PEVNOU DŮVĚRU" },
+    { clue: "MALÝ ZÁZRAK", secret: "ČEKÁ NA TEBE KAŽDÝ DEN" },
+    { clue: "SÍLA ÚSMĚVU", secret: "JE OPRAVDU VELIKÁ" },
+    { clue: "KDO JDE DÁL", secret: "TEN JEDNOU DOJDE K CÍLI" },
+    { clue: "DOBRÝ KLID", secret: "PŘINÁŠÍ JASNÉ MYŠLENKY" },
+    { clue: "ŽIVOT", secret: "KVETE Z MALIČKOSTÍ" }
   ];
 
   const WORDS_BY_LENGTH = WORD_BANK.reduce((groups, word) => {
@@ -78,21 +194,16 @@
     return groups;
   }, {});
 
-  window.WORD_SEARCH_LEVELS = createQuotes().map((quote, index) => buildLevel(quote, index));
+  window.WORD_SEARCH_LEVEL_COUNT = Math.min(MAX_LEVELS, QUOTES.length);
+  window.createWordSearchLevel = function createWordSearchLevel(index) {
+    const quotes = createQuotes();
+    const safeIndex = ((index % quotes.length) + quotes.length) % quotes.length;
+
+    return buildLevel(quotes[safeIndex], safeIndex);
+  };
 
   function createQuotes() {
-    const quotes = [
-      {
-        clue: "RÁNO",
-        secret: "JE MOUDŘEJŠÍ VEČERA"
-      }
-    ];
-
-    QUOTE_STARTS.forEach((clue) => {
-      QUOTE_ENDS.forEach((secret) => quotes.push({ clue, secret }));
-    });
-
-    return quotes.slice(0, MAX_LEVELS);
+    return QUOTES.slice(0, MAX_LEVELS);
   }
 
   function buildLevel(quote, index) {
@@ -114,7 +225,7 @@
     const usedWords = new Set();
     const words = [];
 
-    if (targetCoveredCount < 62 || targetCoveredCount > 88) return null;
+    if (targetCoveredCount < 220 || targetCoveredCount > 242) return null;
 
     for (const direction of shuffle(DIRECTIONS, rng)) {
       if (!placeOneWord(grid, covered, usedWords, words, direction, targetCoveredCount, rng)) {
@@ -171,8 +282,8 @@
   }
 
   function getCandidateWords(remaining, usedWords, rng) {
-    const minLength = Math.min(3, remaining);
-    const lengths = shuffle(range(minLength, GRID_SIZE), rng);
+    const lengths = shuffle(range(MIN_WORD_LENGTH, GRID_SIZE), rng)
+      .sort((first, second) => second - first);
     const candidates = [];
 
     lengths.forEach((length) => {

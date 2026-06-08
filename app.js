@@ -1,7 +1,9 @@
 (function () {
   "use strict";
 
-  const levels = window.WORD_SEARCH_LEVELS || [];
+  const staticLevels = window.WORD_SEARCH_LEVELS || [];
+  const createLevel = window.createWordSearchLevel;
+  const levelCount = window.WORD_SEARCH_LEVEL_COUNT || staticLevels.length;
   const colors = [
     "#f7a8c8",
     "#7fd8de",
@@ -41,7 +43,7 @@
     cellSize: 0
   };
 
-  if (!levels.length) {
+  if (!levelCount) {
     app.innerHTML = "<p class=\"empty-state\">Nenalezen žádný level.</p>";
     return;
   }
@@ -62,7 +64,7 @@
   function loadLevel(index) {
     clearSelection();
     state.levelIndex = index;
-    state.level = levels[index];
+    state.level = getLevel(index);
     state.matrix = state.level.rows.map((row) => [...row]);
     state.found.clear();
     state.preview = null;
@@ -73,7 +75,7 @@
     saveLastLevelIndex(index);
 
     titleEl.textContent = state.level.title;
-    levelCountEl.textContent = `Level ${index + 1} / ${levels.length}`;
+    levelCountEl.textContent = `Level ${index + 1} / ${levelCount}`;
     document.title = `${state.level.title} - Slovní hledací hádanka`;
 
     gridEl.replaceChildren();
@@ -98,15 +100,23 @@
   }
 
   function chooseRandomLevel(excludedIndex) {
-    if (levels.length === 1) return 0;
+    if (levelCount === 1) return 0;
 
-    let index = Math.floor(Math.random() * levels.length);
+    let index = Math.floor(Math.random() * levelCount);
 
     while (index === excludedIndex) {
-      index = Math.floor(Math.random() * levels.length);
+      index = Math.floor(Math.random() * levelCount);
     }
 
     return index;
+  }
+
+  function getLevel(index) {
+    if (typeof createLevel === "function") {
+      return createLevel(index);
+    }
+
+    return staticLevels[index];
   }
 
   function readLastLevelIndex() {
@@ -399,7 +409,7 @@
     line.setAttribute("x2", String(end.x));
     line.setAttribute("y2", String(end.y));
     line.setAttribute("stroke", color);
-    line.setAttribute("stroke-width", String(Math.max(22, state.cellSize * 0.64)));
+    line.setAttribute("stroke-width", String(Math.max(12, state.cellSize * 0.58)));
     line.setAttribute("stroke-linecap", "round");
     line.setAttribute("class", className);
     linesEl.appendChild(line);
