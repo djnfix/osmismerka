@@ -52,11 +52,14 @@
   init();
 
   function init() {
+    updateViewportSize();
     changeLevelButton.addEventListener("click", changeLevel);
-    window.addEventListener("resize", () => {
-      scheduleLineRender();
-      scheduleWordFit();
-    });
+    window.addEventListener("resize", onViewportChange);
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onViewportChange);
+      window.visualViewport.addEventListener("scroll", onViewportChange);
+    }
 
     if ("ResizeObserver" in window) {
       new ResizeObserver(scheduleLineRender).observe(boardWrap);
@@ -64,6 +67,17 @@
     }
 
     loadLevel(chooseRandomLevel(readLastLevelIndex()));
+  }
+
+  function onViewportChange() {
+    updateViewportSize();
+    scheduleLineRender();
+    scheduleWordFit();
+  }
+
+  function updateViewportSize() {
+    const height = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+    document.documentElement.style.setProperty("--visual-height", `${Math.floor(height)}px`);
   }
 
   function loadLevel(index) {
@@ -431,14 +445,19 @@
     const last = cells[cells.length - 1];
     const start = getCellCenter(first);
     const end = getCellCenter(last);
+    const dx = end.x - start.x;
+    const dy = end.y - start.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const extension = Math.max(5, state.cellSize * 0.12);
+    const strokeWidth = Math.max(24, state.cellSize * 1.04);
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
 
-    line.setAttribute("x1", String(start.x));
-    line.setAttribute("y1", String(start.y));
-    line.setAttribute("x2", String(end.x));
-    line.setAttribute("y2", String(end.y));
+    line.setAttribute("x1", String(start.x - dx / length * extension));
+    line.setAttribute("y1", String(start.y - dy / length * extension));
+    line.setAttribute("x2", String(end.x + dx / length * extension));
+    line.setAttribute("y2", String(end.y + dy / length * extension));
     line.setAttribute("stroke", color);
-    line.setAttribute("stroke-width", String(Math.max(18, state.cellSize * 0.78)));
+    line.setAttribute("stroke-width", String(strokeWidth));
     line.setAttribute("stroke-linecap", "round");
     line.setAttribute("class", className);
     linesEl.appendChild(line);
