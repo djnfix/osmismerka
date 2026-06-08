@@ -4,17 +4,25 @@
   const staticLevels = window.WORD_SEARCH_LEVELS || [];
   const createLevel = window.createWordSearchLevel;
   const levelCount = window.WORD_SEARCH_LEVEL_COUNT || staticLevels.length;
+  const difficulties = window.WORD_SEARCH_DIFFICULTIES || [
+    { key: "easy", label: "Lehká", gridSize: 10 },
+    { key: "medium", label: "Střední", gridSize: 13 },
+    { key: "hard", label: "Těžká", gridSize: 16 }
+  ];
+  const defaultDifficulty = window.WORD_SEARCH_DEFAULT_DIFFICULTY || "hard";
   const colors = [
-    "#f7a8c8",
-    "#7fd8de",
-    "#b8e7ef",
-    "#f3c4d8",
-    "#8bd3c7",
-    "#d8b4e2",
-    "#9dd9f3",
-    "#f6b6b8",
-    "#a6e0d5",
-    "#c7d7ff"
+    "#ff8fc7",
+    "#63dce2",
+    "#ffd166",
+    "#8ee8a6",
+    "#c9a7ff",
+    "#ffb36b",
+    "#7fd3ff",
+    "#ff9aa2",
+    "#9de7d7",
+    "#f6a6ff",
+    "#c7ef7c",
+    "#ffcfdf"
   ];
 
   const app = document.querySelector("[data-app]");
@@ -23,8 +31,7 @@
   const linesEl = document.querySelector("[data-word-lines]");
   const wordListEl = document.querySelector("[data-word-list]");
   const titleEl = document.querySelector("[data-level-title]");
-  const levelCountEl = document.querySelector("[data-level-count]");
-  const progressEl = document.querySelector("[data-progress-count]");
+  const difficultySelect = document.querySelector("[data-difficulty-select]");
   const changeLevelButton = document.querySelector("[data-change-level]");
   const secretBox = document.querySelector("[data-secret-box]");
   const quoteClueEl = document.querySelector("[data-quote-clue]");
@@ -33,6 +40,7 @@
 
   const state = {
     levelIndex: 0,
+    difficulty: readDifficulty(),
     level: null,
     matrix: [],
     activePointerId: null,
@@ -54,6 +62,7 @@
   function init() {
     updateViewportSize();
     changeLevelButton.addEventListener("click", changeLevel);
+    difficultySelect.addEventListener("change", () => changeDifficulty(difficultySelect.value));
     window.addEventListener("resize", onViewportChange);
 
     if (window.visualViewport) {
@@ -66,7 +75,7 @@
       new ResizeObserver(scheduleWordFit).observe(wordListEl);
     }
 
-    loadLevel(chooseRandomLevel(readLastLevelIndex()));
+    loadLevel(chooseRandomLevel(readLastLevelIndex(state.difficulty)));
   }
 
   function onViewportChange() {
@@ -83,7 +92,7 @@
   function loadLevel(index) {
     clearSelection();
     state.levelIndex = index;
-    state.level = getLevel(index);
+    state.level = getLevel(index, state.difficulty);
     state.matrix = state.level.rows.map((row) => [...row]);
     state.found.clear();
     state.preview = null;
@@ -91,10 +100,11 @@
     state.startCell = null;
 
     validateLevel(state.level);
-    saveLastLevelIndex(index);
+    saveLastLevelIndex(index, state.difficulty);
+    saveDifficulty(state.difficulty);
+    updateDifficultyControl();
 
     titleEl.textContent = state.level.title;
-    levelCountEl.textContent = `Level ${index + 1} / ${levelCount}`;
     document.title = `${state.level.title} - Slovní hledací hádanka`;
 
     gridEl.replaceChildren();
@@ -119,6 +129,13 @@
     loadLevel(chooseRandomLevel(state.levelIndex));
   }
 
+  function changeDifficulty(difficulty) {
+    if (!getDifficultyDefinition(difficulty) || difficulty === state.difficulty) return;
+
+    state.difficulty = difficulty;
+    loadLevel(chooseRandomLevel(readLastLevelIndex(difficulty)));
+  }
+
   function chooseRandomLevel(excludedIndex) {
     if (levelCount === 1) return 0;
 
@@ -131,17 +148,35 @@
     return index;
   }
 
-  function getLevel(index) {
+  function getLevel(index, difficulty) {
     if (typeof createLevel === "function") {
-      return createLevel(index);
+      return createLevel(index, { difficulty });
     }
 
     return staticLevels[index];
   }
 
-  function readLastLevelIndex() {
+  function readDifficulty() {
     try {
-      const stored = window.localStorage.getItem("wordSearchLastLevel");
+      const stored = window.localStorage.getItem("wordSearchDifficulty");
+
+      return getDifficultyDefinition(stored) ? stored : defaultDifficulty;
+    } catch (error) {
+      return defaultDifficulty;
+    }
+  }
+
+  function saveDifficulty(difficulty) {
+    try {
+      window.localStorage.setItem("wordSearchDifficulty", difficulty);
+    } catch (error) {
+      return;
+    }
+  }
+
+  function readLastLevelIndex(difficulty) {
+    try {
+      const stored = window.localStorage.getItem(getLastLevelKey(difficulty));
       const index = Number(stored);
       return Number.isInteger(index) ? index : -1;
     } catch (error) {
@@ -149,12 +184,24 @@
     }
   }
 
-  function saveLastLevelIndex(index) {
+  function saveLastLevelIndex(index, difficulty) {
     try {
-      window.localStorage.setItem("wordSearchLastLevel", String(index));
+      window.localStorage.setItem(getLastLevelKey(difficulty), String(index));
     } catch (error) {
       return;
     }
+  }
+
+  function getLastLevelKey(difficulty) {
+    return `wordSearchLastLevel:${difficulty}`;
+  }
+
+  function getDifficultyDefinition(difficulty) {
+    return difficulties.find((item) => item.key === difficulty);
+  }
+
+  function updateDifficultyControl() {
+    difficultySelect.value = state.difficulty;
   }
 
   function validateLevel(level) {
@@ -252,7 +299,7 @@
     state.currentCells = [state.startCell];
     state.preview = {
       cells: state.currentCells,
-      color: "#111111"
+      color: "#63dce2"
     };
 
     gridEl.classList.add("is-selecting");
@@ -296,7 +343,7 @@
     state.currentCells = cells;
     state.preview = {
       cells,
-      color: "#111111"
+      color: "#63dce2"
     };
     renderLines();
   }
@@ -369,8 +416,6 @@
   }
 
   function updateProgress() {
-    progressEl.textContent = `${state.found.size} / ${state.level.words.length}`;
-
     if (state.found.size === state.level.words.length) {
       revealSecret();
     }

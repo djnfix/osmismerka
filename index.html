@@ -13,8 +13,13 @@
           <div class="info-card">
             <div class="title-block">
               <div class="level-row">
-                <span class="level-kicker" data-level-count>Level 1 / 1</span>
-                <button class="change-level-button" type="button" data-change-level title="Načíst jiný level">
+                <label class="sr-only" for="difficulty-select">Obtížnost</label>
+                <select class="difficulty-select" id="difficulty-select" data-difficulty-select aria-label="Obtížnost">
+                  <option value="easy">Lehká</option>
+                  <option value="medium">Střední</option>
+                  <option value="hard">Těžká</option>
+                </select>
+                <button class="change-level-button" type="button" data-change-level title="Načíst novou osmisměrku">
                   <svg aria-hidden="true" viewBox="0 0 24 24">
                     <path d="M16 3h5v5"/>
                     <path d="M4 20 21 3"/>
@@ -22,15 +27,10 @@
                     <path d="M15 15l6 6"/>
                     <path d="M4 4l5 5"/>
                   </svg>
-                  <span>Jiný</span>
+                  <span>Nová osmisměrka</span>
                 </button>
               </div>
               <h1 class="sr-only" id="level-title" data-level-title>Slovní hledací hádanka</h1>
-            </div>
-
-            <div class="progress-ring" aria-live="polite">
-              <span data-progress-count>0 / 0</span>
-              <small>nalezeno</small>
             </div>
           </div>
 
