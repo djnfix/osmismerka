@@ -24,6 +24,16 @@
     "#c7ef7c",
     "#ffcfdf"
   ];
+  const wordDirections = [
+    { row: 0, col: 1 },
+    { row: 0, col: -1 },
+    { row: 1, col: 0 },
+    { row: -1, col: 0 },
+    { row: 1, col: 1 },
+    { row: 1, col: -1 },
+    { row: -1, col: 1 },
+    { row: -1, col: -1 }
+  ];
 
   const app = document.querySelector("[data-app]");
   const gridEl = document.querySelector("[data-grid]");
@@ -33,10 +43,11 @@
   const titleEl = document.querySelector("[data-level-title]");
   const difficultySelect = document.querySelector("[data-difficulty-select]");
   const changeLevelButton = document.querySelector("[data-change-level]");
-  const secretBox = document.querySelector("[data-secret-box]");
-  const quoteClueEl = document.querySelector("[data-quote-clue]");
-  const secretMaskEl = document.querySelector("[data-secret-mask]");
-  const secretText = document.querySelector("[data-secret-text]");
+  const resultDialog = document.querySelector("[data-result-dialog]");
+  const resultCloseButton = document.querySelector("[data-result-close]");
+  const resultNewButton = document.querySelector("[data-result-new]");
+  const resultTitleEl = document.querySelector("[data-result-title]");
+  const resultSecretEl = document.querySelector("[data-result-secret]");
 
   const state = {
     levelIndex: 0,
@@ -62,6 +73,13 @@
   function init() {
     updateViewportSize();
     changeLevelButton.addEventListener("click", changeLevel);
+    resultCloseButton.addEventListener("click", hideResultDialog);
+    resultNewButton.addEventListener("click", () => {
+      hideResultDialog();
+      changeLevel();
+    });
+    resultDialog.addEventListener("click", onResultDialogClick);
+    document.addEventListener("keydown", onDocumentKeyDown);
     difficultySelect.addEventListener("change", () => changeDifficulty(difficultySelect.value));
     window.addEventListener("resize", onViewportChange);
 
@@ -107,15 +125,10 @@
     titleEl.textContent = state.level.title;
     document.title = `${state.level.title} - Slovní hledací hádanka`;
 
+    hideResultDialog();
     gridEl.replaceChildren();
     wordListEl.replaceChildren();
     linesEl.replaceChildren();
-    secretBox.classList.remove("has-warning");
-    secretBox.classList.remove("is-solved");
-    secretText.hidden = true;
-    secretText.textContent = "";
-    quoteClueEl.textContent = `${state.level.clue} `;
-    secretMaskEl.textContent = createSecretMask(state.level.secret);
 
     gridEl.style.setProperty("--grid-size", state.matrix.length);
     renderGrid();
@@ -218,6 +231,14 @@
 
       if (cells && getSelectedWord(cells) !== word) {
         throw new Error(`Slovo ${word} neodpovídá své pozici v levelu.`);
+      }
+
+      if (cells) {
+        const occurrences = findWordOccurrences(word);
+
+        if (occurrences.length !== 1 || !cellsEqual(occurrences[0], cells)) {
+          throw new Error(`Slovo ${word} musí být v levelu právě jednou.`);
+        }
       }
     });
   }
@@ -422,27 +443,30 @@
   }
 
   function revealSecret() {
-    const selected = new Set();
+    showResultDialog();
+  }
 
-    state.found.forEach((entry) => {
-      entry.cells.forEach((cell) => selected.add(cellKey(cell)));
-    });
+  function showResultDialog() {
+    resultTitleEl.textContent = "Vyřešeno";
+    resultSecretEl.textContent = state.level.solution || `${state.level.clue} ${state.level.secret}`;
+    resultDialog.hidden = false;
+    resultCloseButton.focus();
+  }
 
-    const leftover = [];
-    state.matrix.forEach((row, rowIndex) => {
-      row.forEach((letter, colIndex) => {
-        if (!selected.has(cellKey({ row: rowIndex, col: colIndex }))) {
-          leftover.push(letter);
-        }
-      });
-    });
+  function hideResultDialog() {
+    resultDialog.hidden = true;
+  }
 
-    const normalizedSecret = normalizeText(state.level.secret);
-    const normalizedLeftover = leftover.join("");
-    secretText.textContent = state.level.solution || `${state.level.clue} ${state.level.secret}`;
-    secretText.hidden = false;
-    secretBox.classList.add("is-solved");
-    secretBox.classList.toggle("has-warning", normalizedSecret !== normalizedLeftover);
+  function onResultDialogClick(event) {
+    if (event.target === resultDialog) {
+      hideResultDialog();
+    }
+  }
+
+  function onDocumentKeyDown(event) {
+    if (event.key === "Escape" && !resultDialog.hidden) {
+      hideResultDialog();
+    }
   }
 
   function getLineCells(start, end) {
@@ -471,6 +495,44 @@
 
   function getSelectedWord(cells) {
     return cells.map((cell) => state.matrix[cell.row][cell.col]).join("");
+  }
+
+  function findWordOccurrences(word) {
+    const letters = [...word];
+    const occurrences = [];
+
+    state.matrix.forEach((row, rowIndex) => {
+      row.forEach((letter, colIndex) => {
+        if (letter !== letters[0]) return;
+
+        wordDirections.forEach((direction) => {
+          const endRow = rowIndex + direction.row * (letters.length - 1);
+          const endCol = colIndex + direction.col * (letters.length - 1);
+
+          if (!isCellInside(endRow, endCol)) return;
+
+          const cells = [];
+
+          for (let index = 0; index < letters.length; index += 1) {
+            const cell = {
+              row: rowIndex + direction.row * index,
+              col: colIndex + direction.col * index
+            };
+
+            if (state.matrix[cell.row][cell.col] !== letters[index]) return;
+            cells.push(cell);
+          }
+
+          occurrences.push(cells);
+        });
+      });
+    });
+
+    return occurrences;
+  }
+
+  function isCellInside(row, col) {
+    return row >= 0 && col >= 0 && row < state.matrix.length && col < state.matrix.length;
   }
 
   function renderLines() {
@@ -549,22 +611,7 @@
     return first.every((cell, index) => cell.row === second[index].row && cell.col === second[index].col);
   }
 
-  function cellKey(cell) {
-    return `${cell.row}:${cell.col}`;
-  }
-
   function reverseText(text) {
     return [...text].reverse().join("");
-  }
-
-  function normalizeText(text) {
-    return text.replace(/\s+/g, "").toUpperCase();
-  }
-
-  function createSecretMask(secret) {
-    return secret
-      .split(" ")
-      .map((word) => "•".repeat([...word].length))
-      .join(" ");
   }
 }());

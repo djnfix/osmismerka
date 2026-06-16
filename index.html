@@ -39,14 +39,6 @@
             <ul class="word-list" data-word-list aria-label="Seznam slov"></ul>
           </section>
 
-          <div class="secret-box" data-secret-box>
-            <span>Tajenka</span>
-            <p class="secret-preview">
-              <strong data-quote-clue></strong>
-              <span data-secret-mask></span>
-            </p>
-            <strong class="secret-solution" data-secret-text hidden></strong>
-          </div>
         </aside>
 
         <section class="board-section">
@@ -56,6 +48,21 @@
           </div>
         </section>
       </section>
+
+      <div class="result-dialog" data-result-dialog hidden role="dialog" aria-modal="true" aria-labelledby="result-title">
+        <div class="result-panel">
+          <button class="result-close" type="button" data-result-close aria-label="Zavřít výsledek">
+            <svg aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M6 6l12 12"/>
+              <path d="M18 6 6 18"/>
+            </svg>
+          </button>
+          <span class="result-kicker">Tajenka</span>
+          <h2 id="result-title" data-result-title>Vyřešeno</h2>
+          <p data-result-secret></p>
+          <button class="result-new-button" type="button" data-result-new>Nová osmisměrka</button>
+        </div>
+      </div>
     </main>
 
     <script src="levels.js"></script>
