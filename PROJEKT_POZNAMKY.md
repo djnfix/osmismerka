@@ -27,8 +27,9 @@ Aktuální stav k 2026-06-16. Tento soubor slouží jako rychlý kontext pro dal
 - Každé hledané slovo musí být v hotové mřížce právě jednou.
 - Slova se nemají opakovat napříč osmisměrkami tak nápadně jako dřív.
 - Pozice a směry slov se mají výrazně měnit mezi levely.
-- Blok s tajenkou se nesmí zobrazovat během hry.
-- Tajenka se ukáže až po nalezení všech slov v zavíratelném popupu.
+- Blok `Tajenka` se během hry zobrazuje v levém panelu.
+- Během hry ukazuje jen nápovědní část a hledanou tajenku jako tečky po slovech.
+- Celá tajenka se ukáže až po nalezení všech slov v zavíratelném popupu.
 - Tlačítko `Nová osmisměrka` načte jiný náhodný level ve stejné obtížnosti.
 - Výchozí obtížnost je `Těžká`.
 
@@ -45,11 +46,11 @@ Poslední level se ukládá zvlášť pro každou obtížnost pod klíčem `word
 
 - Podklad celé stránky: baby pink `#fff1f7`.
 - Hlavní panely jsou bílé.
-- Levá strana má už jen:
+- Levá strana má:
   - horní info kartu s obtížností a tlačítkem `Nová osmisměrka`
   - kartu `Hledaná slova`
-- Starý blok `Tajenka` v levém panelu byl odstraněn.
-- Tajenka se zobrazuje až ve `.result-dialog` po dohrání.
+  - kartu `Tajenka` s nápovědou a tečkovanou maskou
+- Plná tajenka se zobrazuje až ve `.result-dialog` po dohrání.
 - Popup má zavírací tlačítko, zavření přes klik mimo panel a zavření přes `Escape`.
 - Popup obsahuje také tlačítko `Nová osmisměrka`.
 - Pravá strana je bílá karta s osmisměrkou.
@@ -151,7 +152,7 @@ Poslední ověřený výsledek:
 - Nesmí se objevit scroll v levém panelu se slovy.
 - Nesmí se ořezat spodní řádek osmisměrky.
 - Nesmí se znovu přidat počítadlo `0 / x nalezeno`.
-- Nesmí se vracet viditelný blok tajenky do levého panelu.
+- Blok tajenky v levém panelu nesmí odhalit řešení, má ukazovat jen tečkovanou masku.
 - Karty mají zůstat bílé, podklad celé stránky baby pink.
 - Před pushem vždy spustit kontrolu generátoru, protože každé hledané slovo musí mít právě jeden výskyt.
 - Při přidávání slov dávat pozor na podřetězce: pokud jedno slovo obsahuje jiné hledané slovo, může to zhoršit jednoznačnost.

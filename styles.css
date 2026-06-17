@@ -59,13 +59,14 @@ button {
 
 .word-panel {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
   gap: 10px;
   min-height: 0;
 }
 
 .info-card,
 .word-list-card,
+.secret-box,
 .board-section {
   border-radius: 18px;
   background: #ffffff;
@@ -180,7 +181,8 @@ h1 {
   overflow: hidden;
 }
 
-.word-list-heading {
+.word-list-heading,
+.secret-box > span {
   color: var(--muted);
   font-size: 0.72rem;
   font-weight: 600;
@@ -225,6 +227,38 @@ h1 {
   color: rgba(17, 17, 17, 0.62);
   text-decoration: line-through;
   transform: scale(0.96);
+}
+
+.secret-box {
+  min-height: 0;
+  padding: 10px 12px;
+  display: grid;
+  gap: 6px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.secret-preview {
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: baseline;
+  color: #1c2330;
+  line-height: 1.2;
+}
+
+.secret-preview strong {
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.secret-preview [data-secret-mask] {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  overflow-wrap: anywhere;
 }
 
 .board-section {
@@ -460,7 +494,7 @@ h1 {
   }
 
   .word-panel {
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     gap: 10px;
   }
 

@@ -43,6 +43,8 @@
   const titleEl = document.querySelector("[data-level-title]");
   const difficultySelect = document.querySelector("[data-difficulty-select]");
   const changeLevelButton = document.querySelector("[data-change-level]");
+  const quoteClueEl = document.querySelector("[data-quote-clue]");
+  const secretMaskEl = document.querySelector("[data-secret-mask]");
   const resultDialog = document.querySelector("[data-result-dialog]");
   const resultCloseButton = document.querySelector("[data-result-close]");
   const resultNewButton = document.querySelector("[data-result-new]");
@@ -129,6 +131,8 @@
     gridEl.replaceChildren();
     wordListEl.replaceChildren();
     linesEl.replaceChildren();
+    quoteClueEl.textContent = `${state.level.clue} `;
+    secretMaskEl.textContent = createSecretMask(state.level.secret);
 
     gridEl.style.setProperty("--grid-size", state.matrix.length);
     renderGrid();
@@ -639,5 +643,12 @@
         return [...row].filter((letter, colIndex) => !wordCells.has(`${rowIndex}:${colIndex}`));
       })
       .join("");
+  }
+
+  function createSecretMask(secret) {
+    return secret
+      .split(" ")
+      .map((word) => "•".repeat([...word].length))
+      .join(" ");
   }
 }());
