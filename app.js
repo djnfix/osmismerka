@@ -241,6 +241,11 @@
         }
       }
     });
+
+    const leftover = getLeftoverLetters(level);
+    if (leftover !== normalizeText(level.secret)) {
+      throw new Error(`Zbylá písmena levelu netvoří tajenku: ${leftover}`);
+    }
   }
 
   function renderGrid() {
@@ -613,5 +618,26 @@
 
   function reverseText(text) {
     return [...text].reverse().join("");
+  }
+
+  function normalizeText(text) {
+    return text.replace(/\s+/g, "").toUpperCase();
+  }
+
+  function getLeftoverLetters(level) {
+    const wordCells = new Set();
+
+    level.words.forEach((wordEntry) => {
+      const cells = getWordCells(wordEntry);
+      if (!cells) return;
+
+      cells.forEach((cell) => wordCells.add(`${cell.row}:${cell.col}`));
+    });
+
+    return level.rows
+      .flatMap((row, rowIndex) => {
+        return [...row].filter((letter, colIndex) => !wordCells.has(`${rowIndex}:${colIndex}`));
+      })
+      .join("");
   }
 }());
