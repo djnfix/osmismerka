@@ -96,30 +96,19 @@ button {
   flex-wrap: nowrap;
 }
 
-.difficulty-select {
+.difficulty-badge {
   min-height: 30px;
-  max-width: 84px;
-  padding: 6px 22px 6px 9px;
-  border: 0;
+  padding: 6px 10px;
   border-radius: 999px;
-  appearance: none;
-  -webkit-appearance: none;
-  background:
-    linear-gradient(45deg, transparent 50%, #ffffff 50%) right 10px center / 5px 5px no-repeat,
-    linear-gradient(135deg, #ffffff 50%, transparent 50%) right 6px center / 5px 5px no-repeat,
-    #f7a8c8;
+  display: inline-flex;
+  align-items: center;
+  background: #f7a8c8;
   color: #ffffff;
-  cursor: pointer;
   font-size: 0.72rem;
   font-weight: 700;
   line-height: 1;
   letter-spacing: 0;
   box-shadow: 0 4px 14px rgba(112, 161, 183, 0.12);
-}
-
-.difficulty-select:focus-visible {
-  outline: 3px solid rgba(127, 216, 222, 0.85);
-  outline-offset: 2px;
 }
 
 .change-level-button {

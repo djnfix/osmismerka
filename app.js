@@ -4,12 +4,7 @@
   const staticLevels = window.WORD_SEARCH_LEVELS || [];
   const createLevel = window.createWordSearchLevel;
   const levelCount = window.WORD_SEARCH_LEVEL_COUNT || staticLevels.length;
-  const difficulties = window.WORD_SEARCH_DIFFICULTIES || [
-    { key: "easy", label: "Lehká", gridSize: 10 },
-    { key: "medium", label: "Střední", gridSize: 13 },
-    { key: "hard", label: "Těžká", gridSize: 16 }
-  ];
-  const defaultDifficulty = window.WORD_SEARCH_DEFAULT_DIFFICULTY || "hard";
+  const difficulty = window.WORD_SEARCH_DEFAULT_DIFFICULTY || "hard";
   const colors = [
     "#ff8fc7",
     "#63dce2",
@@ -41,7 +36,6 @@
   const linesEl = document.querySelector("[data-word-lines]");
   const wordListEl = document.querySelector("[data-word-list]");
   const titleEl = document.querySelector("[data-level-title]");
-  const difficultySelect = document.querySelector("[data-difficulty-select]");
   const changeLevelButton = document.querySelector("[data-change-level]");
   const quoteClueEl = document.querySelector("[data-quote-clue]");
   const secretMaskEl = document.querySelector("[data-secret-mask]");
@@ -53,7 +47,6 @@
 
   const state = {
     levelIndex: 0,
-    difficulty: readDifficulty(),
     level: null,
     matrix: [],
     activePointerId: null,
@@ -82,7 +75,6 @@
     });
     resultDialog.addEventListener("click", onResultDialogClick);
     document.addEventListener("keydown", onDocumentKeyDown);
-    difficultySelect.addEventListener("change", () => changeDifficulty(difficultySelect.value));
     window.addEventListener("resize", onViewportChange);
 
     if (window.visualViewport) {
@@ -95,7 +87,7 @@
       new ResizeObserver(scheduleWordFit).observe(wordListEl);
     }
 
-    loadLevel(chooseRandomLevel(readLastLevelIndex(state.difficulty)));
+    loadLevel(chooseRandomLevel(readLastLevelIndex()));
   }
 
   function onViewportChange() {
@@ -112,7 +104,7 @@
   function loadLevel(index) {
     clearSelection();
     state.levelIndex = index;
-    state.level = getLevel(index, state.difficulty);
+    state.level = getLevel(index);
     state.matrix = state.level.rows.map((row) => [...row]);
     state.found.clear();
     state.preview = null;
@@ -120,9 +112,7 @@
     state.startCell = null;
 
     validateLevel(state.level);
-    saveLastLevelIndex(index, state.difficulty);
-    saveDifficulty(state.difficulty);
-    updateDifficultyControl();
+    saveLastLevelIndex(index);
 
     titleEl.textContent = state.level.title;
     document.title = `${state.level.title} - Slovní hledací hádanka`;
@@ -146,13 +136,6 @@
     loadLevel(chooseRandomLevel(state.levelIndex));
   }
 
-  function changeDifficulty(difficulty) {
-    if (!getDifficultyDefinition(difficulty) || difficulty === state.difficulty) return;
-
-    state.difficulty = difficulty;
-    loadLevel(chooseRandomLevel(readLastLevelIndex(difficulty)));
-  }
-
   function chooseRandomLevel(excludedIndex) {
     if (levelCount === 1) return 0;
 
@@ -165,7 +148,7 @@
     return index;
   }
 
-  function getLevel(index, difficulty) {
+  function getLevel(index) {
     if (typeof createLevel === "function") {
       return createLevel(index, { difficulty });
     }
@@ -173,27 +156,9 @@
     return staticLevels[index];
   }
 
-  function readDifficulty() {
+  function readLastLevelIndex() {
     try {
-      const stored = window.localStorage.getItem("wordSearchDifficulty");
-
-      return getDifficultyDefinition(stored) ? stored : defaultDifficulty;
-    } catch (error) {
-      return defaultDifficulty;
-    }
-  }
-
-  function saveDifficulty(difficulty) {
-    try {
-      window.localStorage.setItem("wordSearchDifficulty", difficulty);
-    } catch (error) {
-      return;
-    }
-  }
-
-  function readLastLevelIndex(difficulty) {
-    try {
-      const stored = window.localStorage.getItem(getLastLevelKey(difficulty));
+      const stored = window.localStorage.getItem(getLastLevelKey());
       const index = Number(stored);
       return Number.isInteger(index) ? index : -1;
     } catch (error) {
@@ -201,24 +166,16 @@
     }
   }
 
-  function saveLastLevelIndex(index, difficulty) {
+  function saveLastLevelIndex(index) {
     try {
-      window.localStorage.setItem(getLastLevelKey(difficulty), String(index));
+      window.localStorage.setItem(getLastLevelKey(), String(index));
     } catch (error) {
       return;
     }
   }
 
-  function getLastLevelKey(difficulty) {
+  function getLastLevelKey() {
     return `wordSearchLastLevel:${difficulty}`;
-  }
-
-  function getDifficultyDefinition(difficulty) {
-    return difficulties.find((item) => item.key === difficulty);
-  }
-
-  function updateDifficultyControl() {
-    difficultySelect.value = state.difficulty;
   }
 
   function validateLevel(level) {
